@@ -3,7 +3,7 @@
 import rclpy
 import time
 from rclpy.node import Node
-from motor_driver.canmotorlib import CanMotorController
+from canmotorlib import CanMotorController
 from tmotor.msg import MotorCmd
 from tmotor.msg import MotorOutput
 
