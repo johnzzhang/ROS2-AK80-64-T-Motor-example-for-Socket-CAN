@@ -24,12 +24,17 @@ class MotorNode(Node):
             'motor_output', # topic name
             10) # queue length
 
-        self.motor1 = CanMotorController('can0', 0x01)
-        time.sleep(0.1)
+        # 0.5 second timeout is too fast for PCAN
+        self.motor1 = CanMotorController(can_socket='can0', motor_id=0x01, motor_type='AK80_6_V2',socket_timeout=1)
+        time.sleep(1)
+
+        print('Enabling motor...')
         self.motor1.enable_motor()
-        time.sleep(0.1)
+        time.sleep(1)
+
+        print('Zeroing motor position...')
         self.motor1.set_zero_position()
-        time.sleep(0.1)
+        time.sleep(1)
 
     def motor_callback(self, msg):
         max_vel = 0
@@ -47,15 +52,15 @@ class MotorNode(Node):
 
         self.motor_pub.publish(motor_output_msg)
 
-
 def main():
     rclpy.init()
 
-    motor_node = MotorNode()
-    rclpy.spin(motor_node)
-
-    motor_node.destroy_node()
-    rclpy.shutdown()
+    try:
+        motor_node = MotorNode()
+        rclpy.spin(motor_node)
+    except KeyboardInterrupt:
+        motor_node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
