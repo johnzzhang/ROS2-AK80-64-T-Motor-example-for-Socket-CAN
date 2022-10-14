@@ -54,9 +54,7 @@ class MotorNode(Node):
 
         motor_output_msg = MotorOutput()
         pos1, vel1, torq1 = self.motor1.send_deg_command(ref1,max_vel,Kp1,Kd1,ff)
-        time.sleep(.1)
         pos2, vel2, torq2 = self.motor2.send_deg_command(ref2,max_vel,Kp2,Kd2,ff)
-        time.sleep(.1)
 
         motor_output_msg.pos1 = pos1
         motor_output_msg.vel1 = vel1
@@ -67,8 +65,6 @@ class MotorNode(Node):
         motor_output_msg.torq2 = torq2
 
         self.motor_pub.publish(motor_output_msg)
-
-
 
 def main():
     rclpy.init()
