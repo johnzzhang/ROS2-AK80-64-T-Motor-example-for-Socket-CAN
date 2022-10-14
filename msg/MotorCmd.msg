@@ -1,3 +1,7 @@
-float32 ref
-float32 kp
-float32 kd
+float32 ref1
+float32 kp1
+float32 kd1
+
+float32 ref2
+float32 kp2
+float32 kd2
