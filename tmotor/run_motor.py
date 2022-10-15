@@ -56,6 +56,15 @@ class MotorNode(Node):
 
         self.motor_pub.publish(motor_output_msg)
 
+    def disable_motors(self):
+        self.motor1.disable_motor()
+        self.motor2.disable_motor()
+        print('Disabled motors...')
+
+    def destroy_node(self):
+        self.disable_motors()
+        super().destroy_node()
+
 def main():
     rclpy.init()
 

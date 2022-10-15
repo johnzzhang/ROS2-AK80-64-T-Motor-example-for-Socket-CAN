@@ -1,0 +1,4 @@
+source;share/tmotor/environment/ament_prefix_path.sh
+source;share/tmotor/environment/library_path.sh
+source;share/tmotor/environment/path.sh
+source;share/tmotor/environment/pythonpath.sh

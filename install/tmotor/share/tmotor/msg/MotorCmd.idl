@@ -1,0 +1,22 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from tmotor/msg/MotorCmd.msg
+// generated code does not contain a copyright notice
+
+
+module tmotor {
+  module msg {
+    struct MotorCmd {
+      float ref1;
+
+      float kp1;
+
+      float kd1;
+
+      float ref2;
+
+      float kp2;
+
+      float kd2;
+    };
+  };
+};
