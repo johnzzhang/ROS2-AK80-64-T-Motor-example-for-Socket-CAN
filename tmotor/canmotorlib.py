@@ -4,9 +4,6 @@ import time
 import math
 from bitstring import BitArray
 
-# Initial Code Taken From: https://elinux.org/Python_Can
-
-
 # CAN frame packing/unpacking (see `struct can_frame` in <linux/can.h>)
 # 8 bytes of data is sent to the motor
 can_frame_fmt_send = "=IB3x8s"
@@ -15,19 +12,18 @@ can_frame_fmt_recv = "=IB3x6s"
 # Total CAN Frame size is 14 Bytes: 8 Bytes overhead + 6 Bytes data
 recvBytes = 14
 
-
 # Working parameters for AK80-9 V2.0 firmware
 AK80_64_PARAMS = {
                     "P_MIN" : -12.5,
                     "P_MAX" : 12.5,
-                    "V_MIN" : -25.64,
-                    "V_MAX" : 25.64,
+                    "V_MIN" : -8.0,
+                    "V_MAX" : 8.0,
                     "KP_MIN" : 0.0,
                     "KP_MAX" : 500.0,
                     "KD_MIN" : 0.0,
                     "KD_MAX" : 5.0,
-                    "T_MIN" : -18.0,
-                    "T_MAX" : 18.0,
+                    "T_MIN" : -144.0,
+                    "T_MAX" : 144.0,
                     "AXIS_DIRECTION" : 1
                     }
 
@@ -37,7 +33,6 @@ maxRawTorque = 2**12 - 1                        # 12-Bits for Raw Torque Values
 maxRawKp = 2**12 - 1                            # 12-Bits for Raw Kp Values
 maxRawKd = 2**12 - 1                            # 12-Bits for Raw Kd Values
 maxRawCurrent = 2**12 - 1                       # 12-Bits for Raw Current Values
-dt_sleep = 0.0001                               # Time before motor sends a reply
 
 def float_to_uint(x, x_min, x_max, numBits):
     span = x_max - x_min
@@ -50,7 +45,6 @@ def float_to_uint(x, x_min, x_max, numBits):
         bitRange = 2**numBits - 1
     return int(((x - offset) * (bitRange)) / span)
 
-
 def uint_to_float(x_int, x_min, x_max, numBits):
     span = x_max - x_min
     offset = x_min
@@ -62,24 +56,20 @@ def uint_to_float(x_int, x_min, x_max, numBits):
         bitRange = 2**numBits - 1
     return ((x_int * span) / (bitRange)) + offset
 
-
-def waitOhneSleep(dt):
-    startTime = time.time()
-    while time.time() - startTime < dt:
-        pass
-
 class CanMotorController():
     """
     Class for creating a Mini-Cheetah Motor Controller over CAN. Uses SocketCAN driver for
     communication.
     """
     
-    def __init__(self, can_socket='can0', motor_id=0x01, motor_type = 'AK80_6_V1p1',
-                socket_timeout=0.05):
+    def __init__(self, can_socket='can0', motor_id=0x01, motor_type = 'AK80_64',
+                socket_timeout=0.05, motor_response_timeout=0.001):
         """
         Instantiate the class with socket name, motor ID, and socket timeout.
         Sets up the socket communication for rest of the functions.
         """
+        self.can_socket_id = int(can_socket[-1])
+        self.motor_response_timeout = motor_response_timeout
         self.motorParams = AK80_64_PARAMS	# default choice
         print('Using Motor Type: {}'.format(motor_type))
         
@@ -138,11 +128,10 @@ class CanMotorController():
         """
         try:
             self._send_can_frame(b'\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFC')
-            waitOhneSleep(dt_sleep)
-            can_id, can_dlc, motorStatusData = self._recv_can_frame()
+            motorStatusData = self.wait_motor_response()
             rawMotorData = self.decode_motor_status(motorStatusData)
-            pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[0], rawMotorData[1],
-                                                            rawMotorData[2])
+            pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[1], rawMotorData[2],
+                                                            rawMotorData[3])
             print("Motor Enabled.")
             return pos, vel, curr
         except Exception as e:
@@ -163,11 +152,10 @@ class CanMotorController():
 
             # Do the actual disabling after zero command.
             self._send_can_frame(b'\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFD')
-            waitOhneSleep(dt_sleep)
-            can_id, can_dlc, motorStatusData = self._recv_can_frame()
+            motorStatusData = self.wait_motor_response()
             rawMotorData = self.decode_motor_status(motorStatusData)
-            pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[0], rawMotorData[1],
-                                                            rawMotorData[2])
+            pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[1], rawMotorData[2],
+                                                            rawMotorData[3])
             print("Motor Disabled.")
             return pos, vel, curr
         except Exception as e:
@@ -180,11 +168,10 @@ class CanMotorController():
         """
         try:
             self._send_can_frame(b'\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFE')
-            waitOhneSleep(dt_sleep)
-            can_id, can_dlc, motorStatusData = self._recv_can_frame()
+            motorStatusData = self.wait_motor_response()
             rawMotorData = self.decode_motor_status(motorStatusData)
-            pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[0], rawMotorData[1],
-                                                            rawMotorData[2])
+            pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[1], rawMotorData[2],
+                                                            rawMotorData[3])
             print("Zero Position set.")
             return pos, vel, curr
         except Exception as e:
@@ -217,19 +204,17 @@ class CanMotorController():
 
         # Separate motor status values from the bit string.
         # Motor ID not considered necessary at the moment.
-        # motor_id = dataBitArray[:8]
+        motorIDBitArray = dataBitArray[:8]
         positionBitArray = dataBitArray[8:24]
         velocityBitArray = dataBitArray[24:36]
         currentBitArray = dataBitArray[36:48]
 
-        # motor_id = int(motor_id, 2)
+        motor_id = int(motorIDBitArray, 2)
         positionRawValue = int(positionBitArray, 2)
         velocityRawValue = int(velocityBitArray, 2)
         currentRawValue = int(currentBitArray, 2)
 
-        # TODO: Is it necessary/better to return motor_id?
-        # return motor_id, positionRawValue, velocityRawValue, currentRawValue
-        return positionRawValue, velocityRawValue, currentRawValue
+        return motor_id, positionRawValue, velocityRawValue, currentRawValue
 
     def convert_raw_to_physical_rad(self, positionRawValue, velocityRawValue, currentRawValue):
         '''
@@ -265,7 +250,6 @@ class CanMotorController():
         return physicalPositionRad, physicalVelocityRad, physicalCurrent
 
     def convert_physical_rad_to_raw(self, p_des_rad, v_des_rad, kp, kd, tau_ff):
-        
         # Correct the Axis Direction
         p_des_rad = p_des_rad * self.motorParams['AXIS_DIRECTION']
         v_des_rad = v_des_rad * self.motorParams['AXIS_DIRECTION']
@@ -304,8 +288,8 @@ class CanMotorController():
 
         try:
             self._send_can_frame(self._cmd_bytes.tobytes())
-            waitOhneSleep(dt_sleep)
-            can_id, can_dlc, data = self._recv_can_frame()
+            data = self.wait_motor_response()
+            
             return data
         except Exception as e:
             print('Error Sending Raw Commands!')
@@ -361,28 +345,23 @@ class CanMotorController():
 
         motorStatusData = self._send_raw_command(rawPos, rawVel, rawKp, rawKd, rawTauff)
         rawMotorData = self.decode_motor_status(motorStatusData)
-        pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[0], rawMotorData[1],
-                                                            rawMotorData[2])
+        pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[1], rawMotorData[2],
+                                                            rawMotorData[3])
 
+        
         return pos, vel, curr
 
-    def change_motor_constants(self, P_MIN_NEW, P_MAX_NEW, V_MIN_NEW, V_MAX_NEW, KP_MIN_NEW,
-                            KP_MAX_NEW, KD_MIN_NEW, KD_MAX_NEW, T_MIN_NEW, T_MAX_NEW):
-        """
-        Function to change the global motor constants. Default values are for AK80-6 motor from
-        CubeMars. For a different motor, the min/max values can be changed here for correct
-        conversion.
-        change_motor_params(P_MIN_NEW (radians), P_MAX_NEW (radians), V_MIN_NEW (rad/s),
-                            V_MAX_NEW (rad/s), KP_MIN_NEW, KP_MAX_NEW, KD_MIN_NEW, KD_MAX_NEW,
-                            T_MIN_NEW (Nm), T_MAX_NEW (Nm))
-        """
-        self.motorParams['P_MIN'] = P_MIN_NEW
-        self.motorParams['P_MAX'] = P_MAX_NEW
-        self.motorParams['V_MIN'] = V_MIN_NEW
-        self.motorParams['V_MAX'] = V_MAX_NEW
-        self.motorParams['KP_MIN'] = KP_MIN_NEW
-        self.motorParams['KP_MAX'] = KP_MAX_NEW
-        self.motorParams['KD_MIN'] = KD_MIN_NEW
-        self.motorParams['KD_MAX'] = KD_MAX_NEW
-        self.motorParams['T_MIN'] = T_MIN_NEW
-        self.motorParams['T_MAX'] = T_MAX_NEW
+    def wait_motor_response(self):
+        startTime = time.time()
+        while time.time() - startTime < self.motor_response_timeout:
+            can_id, _, data = self._recv_can_frame()
+            
+            self._recv_bytes.bytes = data
+            dataBitArray = self._recv_bytes.bin
+            motorIDBitArray = dataBitArray[:8]
+            motor_id = int(motorIDBitArray, 2)
+
+            if can_id == self.can_socket_id and self.motor_id == motor_id:
+                return data
+
+        raise Exception("Motor response timeout: {} elapsed and no return from motor".format(motor_response_timeout)) 

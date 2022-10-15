@@ -6,6 +6,7 @@ from rclpy.node import Node
 from canmotorlib import CanMotorController
 from tmotor.msg import MotorCmd
 from tmotor.msg import MotorOutput
+from tmotor.msg import MotorDebug
 
 class MotorNode(Node):
     def __init__(self):
@@ -25,23 +26,17 @@ class MotorNode(Node):
             10) # queue length
 
         # 0.5 second timeout is too fast for PCAN
-        self.motor1 = CanMotorController(can_socket='can0', motor_id=0x01, motor_type='AK80_6_V2',socket_timeout=2)
-        time.sleep(1)
-        self.motor2 = CanMotorController(can_socket='can0', motor_id=0x02, motor_type='AK80_6_V2',socket_timeout=2)
-        time.sleep(1)
-
+        self.motor1 = CanMotorController(can_socket='can0', motor_id=0x01, socket_timeout=2, motor_response_timeout=0.001)
+        self.motor2 = CanMotorController(can_socket='can0', motor_id=0x02, socket_timeout=2, motor_response_timeout=0.001)
+        
         print('Enabling motor...')
         self.motor1.enable_motor()
-        time.sleep(1)
         self.motor2.enable_motor()
-        time.sleep(1)
-
+        
         print('Zeroing motor position...')
         self.motor1.set_zero_position()
-        time.sleep(1)
         self.motor2.set_zero_position()
-        time.sleep(1)
-
+        
     def motor_callback(self, msg):
         max_vel = 0
         ff = 0
@@ -53,9 +48,9 @@ class MotorNode(Node):
         Kd2 = msg.kd2
 
         motor_output_msg = MotorOutput()
-        pos1, vel1, torq1 = self.motor1.send_deg_command(ref1,max_vel,Kp1,Kd1,ff)
-        pos2, vel2, torq2 = self.motor2.send_deg_command(ref2,max_vel,Kp2,Kd2,ff)
-
+        pos1, vel1, torq1 = self.motor1.send_rad_command(ref1,max_vel,Kp1,Kd1,ff)
+        pos2, vel2, torq2 = self.motor2.send_rad_command(ref2,max_vel,Kp2,Kd2,ff)
+        
         motor_output_msg.pos1 = pos1
         motor_output_msg.vel1 = vel1
         motor_output_msg.torq1 = torq1
