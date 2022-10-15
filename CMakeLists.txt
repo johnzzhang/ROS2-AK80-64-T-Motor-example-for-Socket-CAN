@@ -29,6 +29,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
     msg/MotorCmd.msg
     msg/MotorOutput.msg
+    msg/MotorDebug.msg
 )
 
 
@@ -39,6 +40,7 @@ ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
   tmotor/run_motor.py
+  tmotor/canmotorlib.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
