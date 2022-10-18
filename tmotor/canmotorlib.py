@@ -87,7 +87,7 @@ class CanMotorController():
         
         self.motorParams = AK80_64_PARAMS # default choice
         
-        if motor_type = 'AK80_64_REVERSED':
+        if motor_type == 'AK80_64_REVERSED':
             self.motorParams = AK80_64_PARAMS_REVERSED
 
         print('Using Motor Type: {}'.format(motor_type))
