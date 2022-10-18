@@ -12,7 +12,7 @@ can_frame_fmt_recv = "=IB3x6s"
 # Total CAN Frame size is 14 Bytes: 8 Bytes overhead + 6 Bytes data
 recvBytes = 14
 
-# Working parameters for AK80-9 V2.0 firmware
+# Working parameters for AK80_64
 AK80_64_PARAMS = {
                     "P_MIN" : -12.5,
                     "P_MAX" : 12.5,
@@ -25,6 +25,20 @@ AK80_64_PARAMS = {
                     "T_MIN" : -144.0,
                     "T_MAX" : 144.0,
                     "AXIS_DIRECTION" : 1
+                    }
+
+AK80_64_PARAMS_REVERSED = {
+                    "P_MIN" : -12.5,
+                    "P_MAX" : 12.5,
+                    "V_MIN" : -8.0,
+                    "V_MAX" : 8.0,
+                    "KP_MIN" : 0.0,
+                    "KP_MAX" : 500.0,
+                    "KD_MIN" : 0.0,
+                    "KD_MAX" : 5.0,
+                    "T_MIN" : -144.0,
+                    "T_MAX" : 144.0,
+                    "AXIS_DIRECTION" : -1
                     }
 
 maxRawPosition = 2**16 - 1                      # 16-Bits for Raw Position Values
@@ -70,7 +84,12 @@ class CanMotorController():
         """
         self.can_socket_id = int(can_socket[-1])
         self.motor_response_timeout = motor_response_timeout
-        self.motorParams = AK80_64_PARAMS	# default choice
+        
+        self.motorParams = AK80_64_PARAMS # default choice
+        
+        if motor_type = 'AK80_64_REVERSED':
+            self.motorParams = AK80_64_PARAMS_REVERSED
+
         print('Using Motor Type: {}'.format(motor_type))
         
         can_socket = (can_socket, )
