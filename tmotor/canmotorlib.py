@@ -12,6 +12,8 @@ can_frame_fmt_recv = "=IB3x6s"
 # Total CAN Frame size is 14 Bytes: 8 Bytes overhead + 6 Bytes data
 recvBytes = 14
 
+valid_motor_types = ["AK80_64", "AK80_64_REVERSED"]
+
 # Working parameters for AK80_64
 AK80_64_PARAMS = {
                     "P_MIN" : -12.5,
@@ -84,6 +86,9 @@ class CanMotorController():
         """
         self.can_socket_id = int(can_socket[-1])
         self.motor_response_timeout = motor_response_timeout
+        
+        if motor_type not in valid_motor_types:
+            raise ValueError('You mispelled the motor type dummy!')
         
         self.motorParams = AK80_64_PARAMS # default choice
         

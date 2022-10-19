@@ -26,7 +26,7 @@ class MotorNode(Node):
             10) # queue length
 
         # 0.5 second timeout is too fast for PCAN
-        self.motor1 = CanMotorController(can_socket='can0', motor_id=0x01, socket_timeout=2, motor_response_timeout=0.001, motor_type='AK80_64_REVERSED')
+        self.motor1 = CanMotorController(can_socket='can0', motor_id=0x01, socket_timeout=2, motor_response_timeout=0.001, motor_type='AK80_6_REVERSED')
         self.motor2 = CanMotorController(can_socket='can0', motor_id=0x02, socket_timeout=2, motor_response_timeout=0.001)
         
         print('Enabling motor...')
