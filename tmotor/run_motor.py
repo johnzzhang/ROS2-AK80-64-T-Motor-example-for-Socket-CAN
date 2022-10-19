@@ -26,7 +26,7 @@ class MotorNode(Node):
             10) # queue length
 
         # 0.5 second timeout is too fast for PCAN
-        self.motor1 = CanMotorController(can_socket='can0', motor_id=0x01, socket_timeout=2, motor_response_timeout=0.001)
+        self.motor1 = CanMotorController(can_socket='can0', motor_id=0x01, socket_timeout=2, motor_response_timeout=0.001, motor_type='AK80_64_REVERSED')
         self.motor2 = CanMotorController(can_socket='can0', motor_id=0x02, socket_timeout=2, motor_response_timeout=0.001)
         
         print('Enabling motor...')
@@ -42,17 +42,25 @@ class MotorNode(Node):
         ff = 0 # feed forward torque
 
         # command message
-        ref1 = msg.ref1 # desired position in degrees
+        ref1 = msg.ref1 # desired position in rad
         Kp1 = msg.kp1
         Kd1 = msg.kd1
 
+        ref2 = msg.ref2 # desired position in rad
+        Kp2 = msg.kp2
+        Kd2 = msg.kd2
+
         motor_output_msg = MotorOutput()
-        pos1, vel1, torq1 = self.motor1.send_rad_command(ref1,max_vel,Kp1,Kd1,ff)
-        pos2, vel2, torq2 = self.motor2.send_rad_command(ref2,max_vel,Kp2,Kd2,ff)
+        pos1, vel1, torq1 = self.motor1.send_rad_command(ref1,vel_ref,Kp1,Kd1,ff)
+        pos2, vel2, torq2 = self.motor2.send_rad_command(ref2,vel_ref,Kp2,Kd2,ff)
         
         motor_output_msg.pos1 = pos1
         motor_output_msg.vel1 = vel1
         motor_output_msg.torq1 = torq1
+
+        motor_output_msg.pos2 = pos2
+        motor_output_msg.vel2 = vel2
+        motor_output_msg.torq2 = torq2
 
         self.motor_pub.publish(motor_output_msg)
 

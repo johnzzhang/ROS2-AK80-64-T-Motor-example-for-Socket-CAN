@@ -24,7 +24,7 @@ AK80_64_PARAMS = {
                     "KD_MAX" : 5.0,
                     "T_MIN" : -144.0,
                     "T_MAX" : 144.0,
-                    "AXIS_DIRECTION" : 1
+                    "AXIS_DIRECTION" : 1.0
                     }
 
 AK80_64_PARAMS_REVERSED = {
@@ -38,7 +38,7 @@ AK80_64_PARAMS_REVERSED = {
                     "KD_MAX" : 5.0,
                     "T_MIN" : -144.0,
                     "T_MAX" : 144.0,
-                    "AXIS_DIRECTION" : -1
+                    "AXIS_DIRECTION" : -1.0
                     }
 
 maxRawPosition = 2**16 - 1                      # 16-Bits for Raw Position Values
