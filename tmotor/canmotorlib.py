@@ -95,10 +95,11 @@ class CanMotorController():
         if motor_type == 'AK80_64_REVERSED':
             self.motorParams = AK80_64_PARAMS_REVERSED
 
-        print('Using Motor Type: {}'.format(motor_type))
-        
         can_socket = (can_socket, )
         self.motor_id = motor_id
+        
+        print('Using Motor Type: {} for Motor {}'.format(motor_type, self.motor_id))
+        
         # create a raw socket and bind it to the given CAN interface
         try:
             self.motor_socket = socket.socket(socket.AF_CAN, socket.SOCK_RAW,
@@ -130,9 +131,8 @@ class CanMotorController():
         try:
             self.motor_socket.send(can_msg)
         except Exception as e:
-            print("Unable to Send CAN Frame.")
-            print("Error: ", e)
-
+            print("Motor {}: Unable to Send CAN Frame.".format(self.motor_id))
+            
     def _recv_can_frame(self):
         """
         Receive a CAN frame and unpack it. Returns can_id, can_dlc (data length), data (in bytes)
@@ -143,9 +143,8 @@ class CanMotorController():
             can_id, can_dlc, data = struct.unpack(can_frame_fmt_recv, frame)
             return can_id, can_dlc, data[:can_dlc]
         except Exception as e:
-            print("Unable to Receive CAN Frame.")
-            print("Error: ", e)
-
+            print("Motor {}: Unable to Receive CAN Frame.".format(self.motor_id))
+            
     def enable_motor(self):
         """
         Sends the enable motor command to the motor.
@@ -156,12 +155,11 @@ class CanMotorController():
             rawMotorData = self.decode_motor_status(motorStatusData)
             pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[1], rawMotorData[2],
                                                             rawMotorData[3])
-            print("Motor Enabled.")
+            print("Motor {}: Enabled.".format(self.motor_id))
             return pos, vel, curr
         except Exception as e:
-            print('Error Enabling Motor!')
-            print("Error: ", e)
-
+            print('Motor {}: Error Enabling Motor!'.format(self.motor_id))
+            
     def disable_motor(self):
         """
         Sends the disable motor command to the motor.
@@ -180,12 +178,11 @@ class CanMotorController():
             rawMotorData = self.decode_motor_status(motorStatusData)
             pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[1], rawMotorData[2],
                                                             rawMotorData[3])
-            print("Motor Disabled.")
+            print("Motor {}: Disabled.".format(self.motor_id))
             return pos, vel, curr
         except Exception as e:
-            print('Error Disabling Motor!')
-            print("Error: ", e)
-
+            print('Motor {}: Error Disabling Motor!'.format(self.motor_id))
+            
     def set_zero_position(self):
         """
         Sends command to set current position as Zero position.
@@ -196,11 +193,10 @@ class CanMotorController():
             rawMotorData = self.decode_motor_status(motorStatusData)
             pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[1], rawMotorData[2],
                                                             rawMotorData[3])
-            print("Zero Position set.")
+            print("Motor {}: Zero Position Set.".format(self.motor_id))
             return pos, vel, curr
         except Exception as e:
-            print('Error Setting Zero Position!')
-            print("Error: ", e)
+            print('Motor {}: Error Setting Zero Position!'.format(self.motor_id))
 
     def decode_motor_status(self, data_frame):
         '''
@@ -316,8 +312,7 @@ class CanMotorController():
             
             return data
         except Exception as e:
-            print('Error Sending Raw Commands!')
-            print("Error: ", e)
+            print('Motor {}: Error Sending Raw Commands!'.format(self.motor_id))
 
     def send_deg_command(self, p_des_deg, v_des_deg, kp, kd, tau_ff):
         """
@@ -367,13 +362,17 @@ class CanMotorController():
         rawPos, rawVel, rawKp, rawKd, rawTauff = self.convert_physical_rad_to_raw(p_des_rad,
                                                                 v_des_rad, kp, kd, tau_ff)
 
-        motorStatusData = self._send_raw_command(rawPos, rawVel, rawKp, rawKd, rawTauff)
-        rawMotorData = self.decode_motor_status(motorStatusData)
-        pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[1], rawMotorData[2],
-                                                            rawMotorData[3])
+        try:
+            motorStatusData = self._send_raw_command(rawPos, rawVel, rawKp, rawKd, rawTauff)
+            rawMotorData = self.decode_motor_status(motorStatusData)
+            pos, vel, curr = self.convert_raw_to_physical_rad(rawMotorData[1], rawMotorData[2],
+                                                                rawMotorData[3])
 
         
-        return pos, vel, curr
+            return pos, vel, curr
+        except Exception as e:
+            print('Motor {}: Error Sending Rad Command!'.format(self.motor_id))
+            return 0.0, 0.0, 0.0
 
     def wait_motor_response(self):
         startTime = time.time()
@@ -388,4 +387,4 @@ class CanMotorController():
             if can_id == self.can_socket_id and self.motor_id == motor_id:
                 return data
 
-        raise Exception("Motor response timeout: {} elapsed and no return from motor".format(motor_response_timeout)) 
+        raise Exception("Motor {}: {} seconds elapsed and no response from motor!".format(self.motor_id, self.motor_response_timeout)) 
