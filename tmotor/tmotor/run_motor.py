@@ -4,9 +4,9 @@ import rclpy
 import time
 from rclpy.node import Node
 from canmotorlib import CanMotorController
-from tmotor.msg import MotorCmd
-from tmotor.msg import MotorOutput
-from tmotor.msg import MotorDebug
+from tmotor_interface.msg import MotorCmd
+from tmotor_interface.msg import MotorOutput
+from tmotor_interface.msg import MotorDebug
 
 class MotorNode(Node):
     def __init__(self):
@@ -27,13 +27,13 @@ class MotorNode(Node):
 
         # 0.5 second timeout is too fast for PCAN
         self.motor1 = CanMotorController(can_socket='can0', motor_id=0x01, socket_timeout=2, motor_response_timeout=0.001, motor_type='AK80_64_REVERSED')
-        self.motor2 = CanMotorController(can_socket='can0', motor_id=0x02, socket_timeout=2, motor_response_timeout=0.001)
+        #self.motor2 = CanMotorController(can_socket='can0', motor_id=0x02, socket_timeout=2, motor_response_timeout=0.001)
         
         self.motor1.enable_motor()
-        self.motor2.enable_motor()
+        #self.motor2.enable_motor()
         
         self.motor1.set_zero_position()
-        self.motor2.set_zero_position()
+        #self.motor2.set_zero_position()
         
     def motor_callback(self, msg):
         vel_ref = 0 # not used for position control
@@ -64,7 +64,7 @@ class MotorNode(Node):
 
     def disable_motors(self):
         self.motor1.disable_motor()
-        self.motor2.disable_motor()
+        #self.motor2.disable_motor()
         print('Disabled motors...')
 
     def destroy_node(self):
